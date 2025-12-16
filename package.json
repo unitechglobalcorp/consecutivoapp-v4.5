@@ -1,0 +1,15 @@
+{
+    "name": "sistema-consecutivos-app",
+    "private": true,
+    "version": "4.5.0",
+    "type": "module",
+    "scripts": {
+      "dev": "vite",
+      "build": "vite build",
+      "preview": "vite preview"
+    },
+    "devDependencies": {
+      "vite": "^5.2.0"
+    },
+    "author": "Ingeniero Maicol Perdomo"
+  }
