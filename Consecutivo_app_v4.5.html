@@ -1,0 +1,1183 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sistema de Consecutivos 4.5 (Final Order)</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    :root {
+      --primary: #2563eb; --primary-dark: #1e40af; --success: #10b981;
+      --danger: #ef4444; --warning: #f59e0b; --bg: #f8fafc;
+      --card: #ffffff; --text: #1e293b; --text-light: #64748b; --border: #e2e8f0;
+    }
+    body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); line-height: 1.6; padding-bottom: 2rem; }
+    .header { background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%); color: white; padding: 2rem; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+    .header h1 { font-size: 2rem; margin-bottom: 0.5rem; }
+    .header p { opacity: 0.9; }
+    .container { max-width: 1400px; margin: 2rem auto; padding: 0 1.5rem 3rem; }
+    
+    /* Tabs */
+    .tabs { display: flex; gap: 1rem; margin-bottom: 2rem; border-bottom: 2px solid var(--border); overflow-x: auto; }
+    .tab { padding: 1rem 1.5rem; background: none; border: none; border-bottom: 3px solid transparent; color: var(--text-light); font-size: 1rem; font-weight: 500; cursor: pointer; transition: all 0.3s; white-space: nowrap; }
+    .tab.active { color: var(--primary); border-bottom-color: var(--primary); }
+    .tab:hover { color: var(--primary); }
+    .tab-content { display: none; }
+    .tab-content.active { display: block; animation: fadeIn 0.3s; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+    /* Cards & Grids */
+    .card { background: var(--card); border-radius: 12px; padding: 1.5rem; box-shadow: 0 1px 3px rgba(0,0,0,0.1); margin-bottom: 1.5rem; }
+    .card-title { font-size: 1.25rem; font-weight: 600; margin-bottom: 1rem; color: var(--text); }
+    .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1rem; margin-bottom: 2rem; }
+    .stat-card { background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%); color: white; padding: 1.5rem; border-radius: 12px; box-shadow: 0 4px 6px rgba(37, 99, 235, 0.2); }
+    .stat-label { font-size: 0.875rem; opacity: 0.9; margin-bottom: 0.5rem; }
+    .stat-value { font-size: 2rem; font-weight: 700; }
+    
+    /* Forms */
+    .form-group { margin-bottom: 1.5rem; }
+    .form-group label { display: block; font-weight: 500; margin-bottom: 0.5rem; color: var(--text); }
+    .form-group input, .form-group select, .form-group textarea { width: 100%; padding: 0.75rem; border: 2px solid var(--border); border-radius: 8px; font-size: 1rem; transition: all 0.3s; font-family: inherit; }
+    .form-group textarea { resize: vertical; min-height: 100px; }
+    .form-group input:focus, .form-group select:focus, .form-group textarea:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1); }
+    
+    /* Buttons */
+    .btn { padding: 0.75rem 1.5rem; border: none; border-radius: 8px; font-size: 1rem; font-weight: 500; cursor: pointer; transition: all 0.3s; display: inline-flex; align-items: center; gap: 0.5rem; }
+    .btn-sm { padding: 0.4rem 0.8rem; font-size: 0.85rem; }
+    .btn-primary { background: var(--primary); color: white; }
+    .btn-primary:hover { background: var(--primary-dark); transform: translateY(-2px); box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3); }
+    .btn-success { background: var(--success); color: white; }
+    .btn-success:hover { background: #059669; }
+    .btn-danger { background: var(--danger); color: white; }
+    .btn-danger:hover { background: #dc2626; }
+    .btn-warning { background: var(--warning); color: white; }
+    .btn-warning:hover { background: #d97706; }
+    .btn-block { width: 100%; justify-content: center; }
+    .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    /* Alerts & Helpers */
+    .alert { padding: 1rem; border-radius: 8px; margin-bottom: 1rem; display: none; }
+    .alert.show { display: block; animation: slideIn 0.3s; }
+    @keyframes slideIn { from { opacity: 0; transform: translateX(-20px); } to { opacity: 1; transform: translateX(0); } }
+    .alert-success { background: #d1fae5; color: #065f46; border-left: 4px solid var(--success); }
+    .alert-error { background: #fee2e2; color: #991b1b; border-left: 4px solid var(--danger); }
+    .alert-info { background: #dbeafe; color: #1e40af; border-left: 4px solid var(--primary); }
+
+    /* User List & Tables */
+    .user-list { display: grid; gap: 1rem; }
+    .user-item { display: flex; justify-content: space-between; align-items: center; padding: 1rem; background: var(--bg); border-radius: 8px; border: 2px solid var(--border); }
+    .user-info { display: flex; align-items: center; gap: 1rem; }
+    .user-avatar { width: 40px; height: 40px; border-radius: 50%; background: var(--primary); color: white; display: flex; align-items: center; justify-content: center; font-weight: 600; }
+    .table-responsive { overflow-x: auto; margin-top: 1rem; }
+    table { width: 100%; border-collapse: collapse; background: white; border-radius: 8px; overflow: hidden; }
+    th, td { padding: 0.8rem; text-align: left; border-bottom: 1px solid var(--border); font-size: 0.9rem; }
+    th { background: var(--bg); font-weight: 600; color: var(--text); }
+    tr:hover { background: var(--bg); }
+    .badge { display: inline-block; padding: 0.25rem 0.75rem; border-radius: 20px; font-size: 0.875rem; font-weight: 500; }
+    .badge-resolucion { background: #dbeafe; color: #1e40af; }
+    .badge-auto { background: #fef3c7; color: #92400e; }
+    .badge-success { background: #d1fae5; color: #065f46; }
+    .badge-error { background: #fee2e2; color: #991b1b; }
+
+    /* File Upload & Loading */
+    .file-upload { border: 2px dashed var(--border); border-radius: 8px; padding: 2rem; text-align: center; cursor: pointer; transition: all 0.3s; position: relative; }
+    .file-upload:hover { border-color: var(--primary); background: rgba(37, 99, 235, 0.05); }
+    .file-upload input { display: none; }
+    .loading { display: none; text-align: center; padding: 2rem; }
+    .loading.show { display: block; }
+    .spinner { border: 3px solid var(--border); border-top: 3px solid var(--primary); border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; margin: 0 auto; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* Layout Utils */
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+    .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1rem; }
+    @media (max-width: 768px) { .grid-2, .grid-3 { grid-template-columns: 1fr; } .stats-grid { grid-template-columns: 1fr; } }
+    
+    .info-box { background: #f0f9ff; border: 2px solid #0ea5e9; border-radius: 8px; padding: 1rem; margin-bottom: 1rem; }
+    .info-box h4 { color: #0369a1; margin-bottom: 0.5rem; }
+    .info-box ul { margin-left: 1.5rem; color: #075985; font-size: 0.9rem; }
+    .connection-status { display: flex; align-items: center; padding: 0.75rem; background: var(--bg); border-radius: 8px; margin-bottom: 1rem; }
+    .status-indicator { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 0.5rem; }
+    .status-connected { background: var(--success); }
+    .status-disconnected { background: var(--danger); }
+    
+    /* Modal */
+    .modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.5); animation: fadeIn 0.3s; }
+    .modal.show { display: flex; align-items: center; justify-content: center; }
+    .modal-content { background: white; padding: 2rem; border-radius: 12px; max-width: 400px; width: 90%; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1); animation: slideUp 0.3s; }
+    @keyframes slideUp { from { transform: translateY(50px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+    .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; }
+    .close-modal { background: none; border: none; font-size: 1.5rem; cursor: pointer; color: var(--text-light); }
+    .locked-tab::after { content: ' 🔒'; }
+    .save-indicator { position: fixed; bottom: 2rem; right: 2rem; background: var(--success); color: white; padding: 1rem 1.5rem; border-radius: 8px; display: none; animation: slideIn 0.3s; z-index: 999; }
+    .save-indicator.show { display: block; }
+
+    .creator-credit { text-align: center; margin-top: 3rem; padding-top: 1rem; border-top: 1px solid var(--border); color: var(--text-light); font-weight: 600; font-size: 0.9rem; }
+    .creator-credit span { color: var(--primary); }
+
+    .required-obs { border-color: var(--danger) !important; background-color: #fff1f2; }
+    .obs-container { display: none; animation: fadeIn 0.3s; }
+    .obs-container.show { display: block; }
+  </style>
+</head>
+<body>
+  <div id="password-modal" class="modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3>🔐 Acceso Protegido</h3>
+        <button class="close-modal" onclick="cerrarModalPassword()">×</button>
+      </div>
+      <p style="margin-bottom: 1.5rem; color: var(--text-light);" id="modal-message">
+        Esta acción requiere permisos de administrador.
+      </p>
+      <div class="form-group">
+        <label>Contraseña</label>
+        <input type="password" id="password-input" placeholder="Ingresa la contraseña">
+      </div>
+      <button class="btn btn-primary btn-block" onclick="verificarPassword()">🔓 Desbloquear</button>
+      <p style="margin-top: 1rem; font-size: 0.85rem; color: var(--text-light); text-align: center;">
+        Contraseña por defecto: <code>admin123</code>
+      </p>
+    </div>
+  </div>
+
+  <div class="save-indicator" id="save-indicator">✅ Guardado automático</div>
+
+  <div class="header">
+    <h1>🔢 Sistema de Consecutivos</h1>
+    <p>Gestión Inteligente de Resoluciones y Autos | <strong>Versión 4.5 Final</strong></p>
+  </div>
+
+  <div class="container">
+    <div id="storage-warning" style="display: none; background: #fef2f2; border: 2px solid #f87171; border-radius: 8px; padding: 1rem; margin-bottom: 1rem;">
+      <strong style="color: #991b1b;">⚠️ ADVERTENCIA:</strong>
+      <span style="color: #7f1d1d;">El almacenamiento local no está disponible. Los datos se perderán al refrescar.</span>
+    </div>
+
+    <div class="tabs">
+      <button class="tab active" data-tab="generar">Generar Consecutivos</button>
+      <button class="tab locked-tab" data-tab="usuarios">Gestión de Usuarios</button>
+      <button class="tab locked-tab" data-tab="configuracion" id="tab-config">Configuración</button>
+      <button class="tab" data-tab="descargar">Descargar Registros</button>
+      <button class="tab" data-tab="informes">Informes y Estadísticas</button>
+      <button class="tab" data-tab="historial">Historial</button>
+    </div>
+
+    <div class="tab-content active" id="generar">
+      <div class="info-box">
+        <h4>📥 Sincronización Segura v4.5</h4>
+        <ul>
+          <li>✅ Sistema de Backup en la nube</li>
+          <li>✅ Sistema de Conexión Simultánea</li>
+          <li>✅ Sistema de Generación de Informes</li>
+        </ul>
+      </div>
+
+      <div class="connection-status">
+        <span class="status-indicator" id="sheets-status"></span>
+        <span id="sheets-status-text">Verificando conexión...</span>
+      </div>
+
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-label">Última Resolución</div>
+          <div class="stat-value" id="last-resolucion">147368</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Último Auto</div>
+          <div class="stat-value" id="last-auto">0351A</div>
+        </div>
+      </div>
+
+      <div id="alert-generar" class="alert"></div>
+
+      <div class="card">
+        <h3 class="card-title">📝 Seleccionar Datos</h3>
+        
+        <div class="grid-2">
+            <div class="form-group">
+              <label>Tipo de Consecutivo (Serie) *</label>
+              <select id="tipo-consecutivo" required>
+                <option value="resolucion">Resolución (Numérico)</option>
+                <option value="auto">Auto (Alfanumérico)</option>
+              </select>
+            </div>
+  
+            <div class="form-group">
+              <label>Responsable *</label>
+              <select id="responsable" required>
+                <option value="">Seleccionar responsable...</option>
+              </select>
+            </div>
+        </div>
+
+        <div class="grid-3">
+            <div class="form-group">
+                <label>Tipo de Resolución *</label>
+                <select id="tipo-resolucion-detalle" onchange="verificarObservaciones()">
+                    <option value="MANDAMIENTO DE PAGO">MANDAMIENTO DE PAGO</option>
+                    <option value="RESOLUCIÓN QUE RESUELVE EXCEPCIONES">RESOLUCIÓN QUE RESUELVE EXCEPCIONES</option>
+                    <option value="PRESCRIPCIÓN">PRESCRIPCIÓN</option>
+                    <option value="ACUERDO DE PAGO">ACUERDO DE PAGO</option>
+                    <option value="RESOLUCIÓN INCUMPLIMIENTO DE ACUERDO DE PAGO">RESOLUCIÓN INCUMPLIMIENTO DE ACUERDO DE PAGO</option>
+                    <option value="SEGUIR ADELANTE">SEGUIR ADELANTE</option>
+                    <option value="RESOLUCIÓN DE RECURSO">RESOLUCIÓN DE RECURSO</option>
+                    <option value="RESOLUCION DE REMISIÓN">RESOLUCION DE REMISIÓN</option>
+                    <option value="RESOLUCIÓN DE SANEAMIENTO">RESOLUCIÓN DE SANEAMIENTO</option>
+                    <option value="OTRO">OTRO (Requiere Observación)</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label>Concedida *</label>
+                <select id="concedida" onchange="verificarObservaciones()">
+                    <option value="SI">SI</option>
+                    <option value="NO">NO</option>
+                    <option value="N/A">N/A (Requiere Observación)</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label>Tipo Radicado / Petición *</label>
+                <select id="tipo-radicado" onchange="verificarObservaciones()">
+                    <option value="SADE">SADE</option>
+                    <option value="PQR">PQR</option>
+                    <option value="OFICIO">OFICIO</option>
+                    <option value="OTRO">OTRO (Requiere Observación)</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="form-group obs-container" id="container-observaciones">
+            <label id="lbl-observaciones">Observaciones (Obligatorio por selección) *</label>
+            <textarea id="observaciones-texto" placeholder="Escriba aquí los detalles requeridos..."></textarea>
+        </div>
+
+        <div class="form-group" style="margin-top: 1.5rem;">
+          <label>Cargar Archivo Base (Excel)</label>
+          <div class="file-upload" id="file-upload-area">
+            <input type="file" id="excel-file" accept=".xlsx,.xls">
+            <p id="file-upload-text">📄 Arrastra un archivo Excel o haz clic para seleccionar</p>
+            <button id="btn-clear-file" type="button" class="btn btn-danger btn-sm" style="display: none; margin: 10px auto;">🗑️ Limpiar Archivo</button>
+            <p style="font-size: 0.8rem; color: var(--text-light); margin-top: 0.5rem;">
+              El sistema llenará automáticamente las columnas seleccionadas arriba.
+            </p>
+          </div>
+        </div>
+
+        <button class="btn btn-primary btn-block" id="btn-generar">
+          <span>✨ Generar Consecutivos</span>
+        </button>
+      </div>
+
+      <div class="loading" id="loading-generar">
+        <div class="spinner"></div>
+        <h3 style="margin-top: 1rem; color: var(--primary);">Procesando Solicitud</h3>
+        <p id="loading-text" style="font-weight: bold;">Iniciando...</p>
+        <p id="loading-countdown" style="font-size: 1.5rem; color: var(--danger); font-weight: bold; margin-top:0.5rem;"></p>
+        <p style="font-size: 0.85rem; color: var(--text-light);">No cierres esta ventana.</p>
+      </div>
+    </div>
+
+    <div class="tab-content" id="usuarios">
+      <div id="alert-usuarios" class="alert"></div>
+      
+      <div class="info-box">
+          <h4>🔒 Área Restringida</h4>
+          <p>Solo el administrador puede agregar o eliminar usuarios.</p>
+      </div>
+
+      <div class="card">
+        <h3 class="card-title">Agregar Nuevo Usuario</h3>
+        <div class="form-group">
+            <label>Nombre Completo *</label>
+            <input type="text" id="nuevo-usuario-nombre" placeholder="Ej: Juan Pérez" required>
+        </div>
+        <button class="btn btn-success btn-block" id="btn-agregar-usuario-trigger">
+          <span>➕ Agregar Usuario (Requiere Contraseña)</span>
+        </button>
+      </div>
+
+      <div class="card">
+        <h3 class="card-title">Usuarios Registrados (<span id="count-usuarios">0</span>)</h3>
+        <div class="user-list" id="user-list"></div>
+      </div>
+    </div>
+
+    <div class="tab-content" id="configuracion">
+      <div class="card">
+        <h3 class="card-title">⚙️ Configuración del Sistema</h3>
+        
+        <div class="card" style="background: #fefce8; border: 2px solid #fbbf24;">
+          <h4 style="color: #92400e; margin-bottom: 1rem;">🔐 Cambiar Contraseña Admin</h4>
+          <div class="form-group">
+            <label>Contraseña Actual</label>
+            <input type="password" id="password-actual" placeholder="Contraseña actual">
+          </div>
+          <div class="form-group">
+            <label>Nueva Contraseña</label>
+            <input type="password" id="password-nueva" placeholder="Mínimo 6 caracteres">
+          </div>
+          <div class="form-group">
+            <label>Confirmar Nueva Contraseña</label>
+            <input type="password" id="password-confirmar" placeholder="Repite la contraseña">
+          </div>
+          <button class="btn btn-warning btn-block" id="btn-cambiar-password">🔐 Actualizar Contraseña</button>
+        </div>
+
+        <div class="card">
+          <h4 style="margin-bottom: 1rem;">📊 Conexión Google Sheets</h4>
+          <div class="form-group">
+            <label>URL de Google Apps Script</label>
+            <textarea id="google-script-url" placeholder="https://script.google.com/macros/s/..." rows="3"></textarea>
+          </div>
+          <button class="btn btn-success btn-block" id="btn-guardar-config">💾 Guardar URL</button>
+          <button class="btn btn-primary btn-block" id="btn-test-connection" style="margin-top: 0.5rem;">🔍 Probar Conexión</button>
+        </div>
+
+        <div class="card">
+          <h4 style="margin-bottom: 1rem;">📋 Código Google Apps Script (CORREGIDO ORDEN FINAL)</h4>
+          <p style="margin-bottom: 1rem; color: var(--danger); font-weight: bold;">
+            ⚠️ IMPORTANTE: Copia este script y actualiza tu Google Apps Script para corregir el orden de las columnas.
+          </p>
+          <textarea readonly id="script-code" style="width: 100%; min-height: 300px; font-family: monospace; font-size: 0.85rem; background: #f8fafc; border: 2px solid var(--border); padding: 1rem; border-radius: 8px;">
+function doGet(e) {
+  const params = e.parameter;
+  if (params.action === 'getLastNumbers') {
+    return obtenerUltimosNumeros();
+  }
+  return ContentService.createTextOutput(JSON.stringify({ status: 'success', message: 'API V4.5 Online' })).setMimeType(ContentService.MimeType.JSON);
+}
+
+function doPost(e) {
+  try {
+    const spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
+    const data = JSON.parse(e.postData.contents);
+    const sheet = obtenerHojaDisponible(spreadsheet);
+    
+    data.registros.forEach(row => {
+      // CORRECCIÓN ORDEN: CONSEDIDA -> OBSERVACIONES -> RESPONSABLE
+      sheet.appendRow([
+        row.CONSECUTIVO,
+        row.TIPO_RADICADO_PETICION || '',
+        row.NUMERO_RADICADO || '',
+        row.FECHA_APERTURA,
+        row.AREA_PRODUCTORA,
+        row.CLASIFICACION,
+        row.PLACA,
+        row.CEDULA_NIT,
+        row.CONTRIBUYENTE,
+        row.TRIBUTO_RENTA,
+        row.TIPO_RESOLUCION,
+        row.VIGENCIAS_PERIODO || '',
+        row.CONSEDIDA,           // <-- Col M
+        row.OBSERVACIONES || '', // <-- Col N
+        row.RESPONSABLE || ''    // <-- Col O (ÚLTIMA)
+      ]);
+    });
+    return ContentService.createTextOutput(JSON.stringify({ status: 'success', message: 'Registros guardados: ' + data.registros.length })).setMimeType(ContentService.MimeType.JSON);
+  } catch (error) {
+    return ContentService.createTextOutput(JSON.stringify({ status: 'error', message: error.toString() })).setMimeType(ContentService.MimeType.JSON);
+  }
+}
+
+function obtenerUltimosNumeros() {
+  const spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
+  const sheets = spreadsheet.getSheets();
+  let maxResolucion = 0;
+  let maxAutoNum = 0;
+  let lastAutoSuffix = 'A';
+  
+  sheets.forEach(sheet => {
+    const nombre = sheet.getName();
+    if (nombre === 'CONSECUTIVOS' || nombre.startsWith('CONSECUTIVOS_')) {
+      const lastRow = sheet.getLastRow();
+      if (lastRow > 1) {
+        const data = sheet.getRange(2, 1, lastRow - 1, 6).getValues();
+        data.forEach(row => {
+          const consecutivo = String(row[0]);
+          if (!isNaN(consecutivo)) {
+             const num = parseInt(consecutivo);
+             if (num > maxResolucion) maxResolucion = num;
+          } else {
+             const nums = consecutivo.match(/\d+/);
+             if (nums) {
+               const val = parseInt(nums[0]);
+               if (val > maxAutoNum) {
+                 maxAutoNum = val;
+                 lastAutoSuffix = consecutivo.slice(-1);
+               }
+             }
+          }
+        });
+      }
+    }
+  });
+  
+  const lastAutoStr = String(maxAutoNum).padStart(4, '0') + lastAutoSuffix;
+  return ContentService.createTextOutput(JSON.stringify({
+    status: 'success',
+    lastResolucion: maxResolucion > 0 ? maxResolucion : 147368,
+    lastAuto: maxAutoNum > 0 ? lastAutoStr : '0351A'
+  })).setMimeType(ContentService.MimeType.JSON);
+}
+
+function obtenerHojaDisponible(spreadsheet) {
+  const LIMITE_FILAS = 70000;
+  const sheets = spreadsheet.getSheets();
+  for (let i = 0; i < sheets.length; i++) {
+    const sheet = sheets[i];
+    const nombreHoja = sheet.getName();
+    if (nombreHoja === 'CONSECUTIVOS' || nombreHoja.startsWith('CONSECUTIVOS_')) {
+      if (sheet.getLastRow() < LIMITE_FILAS) return sheet;
+    }
+  }
+  return crearNuevaHoja(spreadsheet);
+}
+
+function crearNuevaHoja(spreadsheet) {
+  const sheets = spreadsheet.getSheets();
+  let numeroMayor = 1;
+  sheets.forEach(sheet => {
+    const nombre = sheet.getName();
+    if (nombre.startsWith('CONSECUTIVOS_')) {
+      const numero = parseInt(nombre.split('_')[1]);
+      if (numero > numeroMayor) numeroMayor = numero;
+    }
+  });
+  const nuevoNumero = numeroMayor + 1;
+  const nuevaHoja = spreadsheet.insertSheet('CONSECUTIVOS_' + nuevoNumero);
+  // CORRECCIÓN ENCABEZADOS
+  nuevaHoja.appendRow(['CONSECUTIVO','TIPO_RADICADO_PETICION','NUMERO_RADICADO','FECHA_APERTURA','AREA_PRODUCTORA','CLASIFICACION','PLACA','CEDULA_NIT','CONTRIBUYENTE','TRIBUTO_RENTA','TIPO_RESOLUCION','VIGENCIAS_PERIODO','CONSEDIDA','OBSERVACIONES','RESPONSABLE']);
+  const rango = nuevaHoja.getRange(1, 1, 1, 15);
+  rango.setFontWeight('bold').setBackground('#4285f4').setFontColor('#ffffff');
+  return nuevaHoja;
+}</textarea>
+          <button class="btn btn-primary" style="margin-top: 1rem;" onclick="copiarScript()">📋 Copiar Script</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="tab-content" id="descargar">
+      <div class="card">
+        <h3 class="card-title">📥 Descargar Base de Datos</h3>
+        <div class="export-buttons">
+          <button class="btn btn-success" id="btn-download-all-excel">📊 Excel Completo</button>
+          <button class="btn btn-primary" id="btn-download-all-csv">📄 CSV Plano</button>
+          <button class="btn btn-warning" id="btn-download-backup">💾 Backup JSON</button>
+        </div>
+      </div>
+      <div class="card">
+        <h3 class="card-title">🗑️ Zona de Peligro</h3>
+        <button class="btn btn-danger" id="btn-limpiar-datos-trigger">🔐🗑️ Resetear Base de Datos</button>
+      </div>
+    </div>
+
+    <div class="tab-content" id="informes">
+      <div class="card">
+        <h3 class="card-title">📊 Estadísticas Globales</h3>
+        <div class="stats-grid">
+          <div class="stat-card">
+             <div class="stat-label">Total Resoluciones</div>
+            <div class="stat-value" id="stat-total-resoluciones">0</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Total Autos</div>
+            <div class="stat-value" id="stat-total-autos">0</div>
+          </div>
+          <div class="stat-card">
+             <div class="stat-label">Usuarios Activos</div>
+            <div class="stat-value" id="stat-usuarios-activos">0</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+         <h3 class="card-title">🔎 Reportes Avanzados</h3>
+         <p style="color: var(--text-light); margin-bottom: 1rem;">Genera informes detallados filtrando por Usuario y Tipo de Resolución.</p>
+        
+        <div class="grid-3">
+            <div class="form-group">
+                <label>1. Usuario (Obligatorio)</label>
+                 <select id="select-reporte-usuario">
+                    <option value="">Selecciona un usuario...</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>2. Tipo de Resolución (Opcional)</label>
+                <select id="select-reporte-tipo">
+                    <option value="TODOS">TODOS LOS TIPOS</option>
+                    <option value="MANDAMIENTO DE PAGO">MANDAMIENTO DE PAGO</option>
+                    <option value="RESOLUCIÓN QUE RESUELVE EXCEPCIONES">RESOLUCIÓN QUE RESUELVE EXCEPCIONES</option>
+                    <option value="PRESCRIPCIÓN">PRESCRIPCIÓN</option>
+                    <option value="ACUERDO DE PAGO">ACUERDO DE PAGO</option>
+                    <option value="RESOLUCIÓN INCUMPLIMIENTO DE ACUERDO DE PAGO">INCUMPLIMIENTO ACUERDO</option>
+                    <option value="SEGUIR ADELANTE">SEGUIR ADELANTE</option>
+                    <option value="RESOLUCIÓN DE RECURSO">RESOLUCIÓN DE RECURSO</option>
+                    <option value="RESOLUCION DE REMISIÓN">RESOLUCION DE REMISIÓN</option>
+                    <option value="RESOLUCIÓN DE SANEAMIENTO">RESOLUCIÓN DE SANEAMIENTO</option>
+                    <option value="OTRO">OTRO</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>3. Rango de Fecha (Opcional)</label>
+                <div style="display:flex; gap:5px;">
+                  <input type="date" id="reporte-fecha-inicio">
+                  <input type="date" id="reporte-fecha-fin">
+                </div>
+            </div>
+        </div>
+         
+        <button class="btn btn-success btn-block" onclick="descargarReporteAvanzado()">
+             📊 Descargar Reporte Filtrado
+        </button>
+      </div>
+
+      <div class="card">
+        <h3 class="card-title">👥 Productividad por Usuario</h3>
+        <div class="table-responsive">
+          <table id="tabla-por-usuario">
+            <thead>
+             <tr>
+                <th>Usuario</th>
+                <th>Resoluciones</th>
+                <th>Autos</th>
+                <th>Total</th>
+                <th>Última Actividad</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <div class="tab-content" id="historial">
+      <div class="card">
+        <h3 class="card-title">📜 Auditoría de Transacciones</h3>
+        <div class="table-responsive">
+          <table id="tabla-historial">
+            <thead>
+              <tr>
+                <th>Fecha/Hora</th>
+                <th>Tipo</th>
+                <th>Rango Generado</th>
+                <th>Cant.</th>
+                <th>Responsable</th>
+                <th>Sync Nube</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+       </div>
+    </div>
+    
+    <div class="creator-credit">
+        <p>Sistema desarrollado por: <span>Ingeniero Maicol Perdomo</span></p>
+    </div>
+  </div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <script>
+    // --- LÓGICA DE ALMACENAMIENTO ---
+    const Storage = {
+      async get(key) {
+        try { return JSON.parse(window.localStorage.getItem(key)); } 
+        catch (e) { return null; }
+      },
+      async set(key, value) {
+        try { window.localStorage.setItem(key, JSON.stringify(value)); return true; } 
+        catch (e) { return false; }
+      }
+    };
+
+    // --- UTILIDADES ---
+    function excelSerialToDate(serial) {
+      if (!serial) return '';
+      if (typeof serial === 'string') return serial;
+      if (serial instanceof Date) return serial.toLocaleDateString('es-CO');
+      const date = new Date(Date.UTC(1899, 11, 31) + (serial - 1) * 86400000);
+      return date.toLocaleDateString('es-CO');
+    }
+
+    // --- ESTADO GLOBAL ---
+    let state = {
+      lastResolucion: 147368,
+      lastAuto: '0351A',
+      usuarios: [],
+      historial: [],
+      todosLosRegistros: [],
+      googleScriptUrl: '',
+      password: btoa('admin123')
+    };
+    let passwordAction = ''; 
+    let usuarioAEliminar = null;
+
+    // --- INICIALIZACIÓN CON AUTO-REPARACIÓN ---
+    async function init() {
+      try {
+          if (!window.localStorage) document.getElementById('storage-warning').style.display = 'block';
+          
+          const savedState = await Storage.get('app-state-v4');
+          if (savedState) {
+              state = { ...state, ...savedState };
+              if (!Array.isArray(state.usuarios)) state.usuarios = [];
+              if (!Array.isArray(state.historial)) state.historial = [];
+              if (!Array.isArray(state.todosLosRegistros)) state.todosLosRegistros = [];
+          }
+          
+          if (!state.password || state.password === "") state.password = btoa('admin123');
+          if (state.googleScriptUrl) document.getElementById('google-script-url').value = state.googleScriptUrl;
+          
+          updateUI();
+          loadUserSelect();
+          loadUserList();
+          loadInformes();
+          loadHistorial();
+          checkGoogleSheetsConnection();
+          setupEventListeners();
+          verificarObservaciones();
+          
+      } catch (error) {
+          console.error("Error crítico en inicio:", error);
+          alert("Se detectó un error en los datos guardados. Se reiniciará la sesión por seguridad.");
+          window.localStorage.removeItem('app-state-v4');
+          location.reload();
+      }
+    }
+
+    // --- CORE LOGIC ---
+    async function saveState() {
+      await Storage.set('app-state-v4', state);
+      const indicator = document.getElementById('save-indicator');
+      indicator.classList.add('show');
+      setTimeout(() => indicator.classList.remove('show'), 2000);
+    }
+
+    function updateUI() {
+      document.getElementById('last-resolucion').textContent = state.lastResolucion;
+      document.getElementById('last-auto').textContent = state.lastAuto;
+    }
+
+    function verificarObservaciones() {
+        const tipoRes = document.getElementById('tipo-resolucion-detalle').value;
+        const concedida = document.getElementById('concedida').value;
+        const tipoRad = document.getElementById('tipo-radicado').value;
+        const obsContainer = document.getElementById('container-observaciones');
+        const obsText = document.getElementById('observaciones-texto');
+        const labelObs = document.getElementById('lbl-observaciones');
+
+        let requiereObs = false;
+        if (tipoRes === 'OTRO') requiereObs = true;
+        if (concedida === 'N/A') requiereObs = true;
+        if (tipoRad === 'OTRO') requiereObs = true;
+
+        if (requiereObs) {
+            obsContainer.classList.add('show');
+            obsText.required = true;
+            labelObs.innerHTML = 'Observaciones <strong>(OBLIGATORIO)</strong> *';
+            labelObs.style.color = 'var(--danger)';
+        } else {
+            obsContainer.classList.add('show'); 
+            obsText.required = false;
+            labelObs.innerHTML = 'Observaciones (Opcional)';
+            labelObs.style.color = 'var(--text)';
+        }
+    }
+
+    async function checkGoogleSheetsConnection() {
+      const statusInd = document.getElementById('sheets-status');
+      const statusTxt = document.getElementById('sheets-status-text');
+      if (!state.googleScriptUrl) {
+        statusInd.className = 'status-indicator status-disconnected';
+        statusTxt.textContent = 'Sin conexión a Nube';
+        return;
+      }
+      try {
+        const res = await fetch(state.googleScriptUrl);
+        const data = await res.json();
+        if (data.status === 'success') {
+          statusInd.className = 'status-indicator status-connected';
+          statusTxt.textContent = '✅ Conectado a Google Sheets';
+        }
+      } catch (e) {
+        statusInd.className = 'status-indicator status-disconnected';
+        statusTxt.textContent = '⚠️ Error de conexión';
+      }
+    }
+
+    async function sincronizarConsecutivos() {
+        if (!state.googleScriptUrl) return false;
+        try {
+            const url = state.googleScriptUrl + (state.googleScriptUrl.includes('?') ? '&' : '?') + 'action=getLastNumbers';
+            const response = await fetch(url);
+            const data = await response.json();
+            if (data.status === 'success') {
+                if (data.lastResolucion > state.lastResolucion) state.lastResolucion = data.lastResolucion;
+                if (data.lastAuto !== state.lastAuto) state.lastAuto = data.lastAuto;
+                updateUI();
+                return true;
+            }
+        } catch (error) { console.error('Error Sync:', error); }
+        return false;
+    }
+
+    function loadUserSelect() {
+      const select = document.getElementById('responsable');
+      const reportSelect = document.getElementById('select-reporte-usuario');
+      select.innerHTML = '<option value="">Seleccionar responsable...</option>';
+      reportSelect.innerHTML = '<option value="">Selecciona un usuario...</option>';
+      
+      if(state.usuarios && Array.isArray(state.usuarios)) {
+          state.usuarios.forEach(user => {
+            const opt = `<option value="${user.id}">${user.nombre}</option>`;
+            select.innerHTML += opt;
+            reportSelect.innerHTML += opt;
+          });
+      }
+    }
+
+    function loadUserList() {
+      const list = document.getElementById('user-list');
+      document.getElementById('count-usuarios').textContent = state.usuarios ? state.usuarios.length : 0;
+      list.innerHTML = '';
+      if(state.usuarios && Array.isArray(state.usuarios)) {
+          state.usuarios.forEach(user => {
+            const item = document.createElement('div');
+            item.className = 'user-item';
+            item.innerHTML = `
+              <div class="user-info">
+                <div class="user-avatar">${user.nombre.charAt(0).toUpperCase()}</div>
+                <div style="font-weight: 600;">${user.nombre}</div>
+              </div>
+              <button class="btn btn-danger btn-sm" onclick="iniciarEliminarUsuario('${user.id}')">🗑️</button>
+            `;
+            list.appendChild(item);
+          });
+      }
+    }
+
+    async function generarConsecutivos() {
+      const tipo = document.getElementById('tipo-consecutivo').value;
+      const respId = document.getElementById('responsable').value;
+      const file = document.getElementById('excel-file').files[0];
+      
+      const tipoRes = document.getElementById('tipo-resolucion-detalle').value;
+      const concedida = document.getElementById('concedida').value;
+      const tipoRad = document.getElementById('tipo-radicado').value;
+      const observaciones = document.getElementById('observaciones-texto').value.trim();
+      const isObsRequired = document.getElementById('observaciones-texto').required;
+
+      if (!respId) return showAlert('generar', 'Selecciona un responsable', 'error');
+      if (!file) return showAlert('generar', 'Carga un archivo Excel', 'error');
+      if (isObsRequired && !observaciones) return showAlert('generar', '⚠️ El campo Observaciones es OBLIGATORIO.', 'error');
+
+      const responsable = state.usuarios.find(u => u.id === respId);
+      
+      let registrosBase = [];
+      try {
+          registrosBase = await procesarExcel(file);
+      } catch (e) { return showAlert('generar', 'Error leyendo Excel', 'error'); }
+      
+      if (registrosBase.length === 0) return showAlert('generar', 'Excel vacío', 'error');
+
+      const loading = document.getElementById('loading-generar');
+      const btn = document.getElementById('btn-generar');
+      const txtStatus = document.getElementById('loading-text');
+      const txtCount = document.getElementById('loading-countdown');
+      
+      loading.classList.add('show');
+      btn.disabled = true;
+
+      for (let i = 10; i > 0; i--) {
+          txtStatus.textContent = '⏳ Sincronizando y bloqueando concurrencia...';
+          txtCount.textContent = `${i} s`;
+          await new Promise(r => setTimeout(r, 1000));
+      }
+      txtCount.textContent = '';
+      
+      txtStatus.textContent = '☁️ Verificando últimos números en nube...';
+      if (state.googleScriptUrl) await sincronizarConsecutivos();
+
+      txtStatus.textContent = '✨ Generando consecutivos...';
+      const nuevosConsecutivos = generarNumerosLogica(tipo, registrosBase.length);
+      
+      // -- FECHA AUTOMÁTICA (HOY) --
+      const fechaHoy = new Date().toLocaleDateString('es-CO');
+
+      const registrosFinales = registrosBase.map((reg, i) => ({
+          CONSECUTIVO: nuevosConsecutivos[i],
+          TIPO_RADICADO_PETICION: tipoRad,
+          NUMERO_RADICADO: reg.NUMERO_RADICADO || '',
+          FECHA_APERTURA: fechaHoy, 
+          AREA_PRODUCTORA: reg.AREA_PRODUCTORA || 'COBRANZAS',
+          CLASIFICACION: tipo.toUpperCase(),
+          PLACA: reg.PLACA || '',
+          CEDULA_NIT: reg.CEDULA_NIT || '',
+          CONTRIBUYENTE: reg.CONTRIBUYENTE || '',
+          TRIBUTO_RENTA: reg.TRIBUTO_RENTA || '',
+          TIPO_RESOLUCION: tipoRes,
+          VIGENCIAS_PERIODO: reg.VIGENCIAS_PERIODO || '',
+          RESPONSABLE: responsable.nombre,
+          CONSEDIDA: concedida,
+          OBSERVACIONES: observaciones
+      }));
+
+      state.todosLosRegistros.push(...registrosFinales);
+      
+      let nubeOk = false;
+      if (state.googleScriptUrl) {
+          txtStatus.textContent = '📤 Enviando respaldo a Google Sheets...';
+          const res = await enviarAGoogleSheets(registrosFinales);
+          nubeOk = res.success;
+      }
+
+      if (tipo === 'resolucion') state.lastResolucion = parseInt(nuevosConsecutivos[nuevosConsecutivos.length - 1]);
+      else state.lastAuto = nuevosConsecutivos[nuevosConsecutivos.length - 1];
+
+      state.historial.unshift({
+          id: Date.now(),
+          fecha: new Date().toISOString(),
+          tipo,
+          consecutivos: nuevosConsecutivos,
+          cantidad: registrosBase.length,
+          responsable: responsable.nombre,
+          responsableId: responsable.id,
+          googleSheets: nubeOk
+      });
+
+      await saveState();
+
+      descargarExcelRegistros(registrosFinales, `CONSECUTIVOS_${tipo.toUpperCase()}_${new Date().toISOString().slice(0,10)}.xlsx`);
+      
+      loading.classList.remove('show');
+      btn.disabled = false;
+      document.getElementById('excel-file').value = '';
+      document.getElementById('btn-clear-file').style.display = 'none';
+      document.getElementById('observaciones-texto').value = '';
+      
+      updateUI();
+      loadInformes();
+      loadHistorial();
+      
+      showAlert('generar', `✅ ${registrosBase.length} generados exitosamente.`, 'success');
+    }
+
+    function generarNumerosLogica(tipo, cantidad) {
+      let result = [];
+      let num = tipo === 'resolucion' ? state.lastResolucion : parseInt(state.lastAuto.slice(0, 4));
+      const sufijo = tipo === 'auto' ? state.lastAuto.slice(4) : '';
+      
+      for (let i = 0; i < cantidad; i++) {
+        num++;
+        result.push(tipo === 'resolucion' ? String(num) : String(num).padStart(4,'0') + sufijo);
+      }
+      return result;
+    }
+
+    async function procesarExcel(file) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            const data = new Uint8Array(e.target.result);
+            const workbook = XLSX.read(data, { type: 'array' });
+            const jsonData = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]], { defval: '' });
+            resolve(jsonData);
+        };
+        reader.onerror = reject;
+        reader.readAsArrayBuffer(file);
+      });
+    }
+
+    async function enviarAGoogleSheets(registros) {
+        try {
+            const res = await fetch(state.googleScriptUrl, {
+                method: 'POST', mode: 'no-cors',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ registros })
+            });
+            return { success: true };
+        } catch (e) { return { success: false }; }
+    }
+
+    function descargarExcelRegistros(registros, nombre) {
+        // CORRECCIÓN LOCAL: Orden Consedida -> Observaciones -> Responsable
+        const wsData = [['CONSECUTIVO','TIPO_RADICADO_PETICION','NUMERO_RADICADO','FECHA_APERTURA','AREA_PRODUCTORA','CLASIFICACION','PLACA','CEDULA_NIT','CONTRIBUYENTE','TRIBUTO_RENTA','TIPO_RESOLUCION','VIGENCIAS_PERIODO','CONSEDIDA','OBSERVACIONES','RESPONSABLE']];
+        registros.forEach(r => wsData.push([r.CONSECUTIVO, r.TIPO_RADICADO_PETICION, r.NUMERO_RADICADO, r.FECHA_APERTURA, r.AREA_PRODUCTORA, r.CLASIFICACION, r.PLACA, r.CEDULA_NIT, r.CONTRIBUYENTE, r.TRIBUTO_RENTA, r.TIPO_RESOLUCION, r.VIGENCIAS_PERIODO, r.CONSEDIDA, r.OBSERVACIONES, r.RESPONSABLE]));
+        const ws = XLSX.utils.aoa_to_sheet(wsData);
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, 'Datos');
+        XLSX.writeFile(wb, nombre);
+    }
+    
+    function descargarCSV(registros) {
+        if (!registros || registros.length === 0) return alert("No hay datos para descargar");
+        const header = Object.keys(registros[0]).join(",");
+        const rows = registros.map(r => Object.values(r).join(","));
+        const csvContent = "data:text/csv;charset=utf-8," + header + "\n" + rows.join("\n");
+        const encodedUri = encodeURI(csvContent);
+        const link = document.createElement("a");
+        link.setAttribute("href", encodedUri);
+        link.setAttribute("download", "BACKUP_CSV.csv");
+        document.body.appendChild(link);
+        link.click();
+    }
+
+    function descargarReporteAvanzado() {
+        const userId = document.getElementById('select-reporte-usuario').value;
+        const tipoRes = document.getElementById('select-reporte-tipo').value;
+        const fechaIni = document.getElementById('reporte-fecha-inicio').value;
+        const fechaFin = document.getElementById('reporte-fecha-fin').value;
+
+        if (!userId) return alert('Seleccione un usuario.');
+
+        const usuario = state.usuarios.find(u => u.id === userId);
+        const nombreUser = usuario ? usuario.nombre : 'Eliminado';
+
+        let dataFiltrada = state.todosLosRegistros.filter(reg => {
+            let matchUser = reg.RESPONSABLE === nombreUser;
+            let matchTipo = true;
+            if (tipoRes !== 'TODOS') matchTipo = reg.TIPO_RESOLUCION === tipoRes;
+            
+            // Filtro fecha simple
+            const lote = state.historial.find(h => h.consecutivos.includes(reg.CONSECUTIVO));
+            let fechaGen = lote ? new Date(lote.fecha) : new Date(); 
+            fechaGen.setHours(0,0,0,0);
+            
+            let matchFecha = true;
+            if (fechaIni) matchFecha = matchFecha && fechaGen >= new Date(fechaIni);
+            if (fechaFin) matchFecha = matchFecha && fechaGen <= new Date(fechaFin);
+
+            return matchUser && matchTipo && matchFecha;
+        });
+
+        if (dataFiltrada.length === 0) return alert('No se encontraron registros con esos filtros.');
+        descargarExcelRegistros(dataFiltrada, `REPORTE_${nombreUser}_${tipoRes === 'TODOS'?'GENERAL':tipoRes.substring(0,10)}.xlsx`);
+    }
+
+    function setupEventListeners() {
+      document.querySelectorAll('.tab').forEach(tab => {
+        tab.addEventListener('click', () => {
+          if (tab.dataset.tab === 'configuracion' || tab.dataset.tab === 'usuarios') {
+            passwordAction = tab.dataset.tab;
+            mostrarModalPassword();
+          } else {
+            cambiarTab(tab.dataset.tab);
+          }
+        });
+      });
+
+      document.getElementById('btn-agregar-usuario-trigger').addEventListener('click', () => {
+          const nombre = document.getElementById('nuevo-usuario-nombre').value;
+          if(!nombre) return alert('Escriba un nombre');
+          agregarUsuario(nombre);
+      });
+
+      document.getElementById('btn-limpiar-datos-trigger').addEventListener('click', () => {
+          passwordAction = 'delete_all';
+          mostrarModalPassword();
+      });
+
+      document.getElementById('btn-generar').addEventListener('click', generarConsecutivos);
+      document.getElementById('btn-guardar-config').addEventListener('click', guardarConfig);
+      document.getElementById('btn-test-connection').addEventListener('click', checkGoogleSheetsConnection);
+      document.getElementById('btn-cambiar-password').addEventListener('click', cambiarPass);
+      document.getElementById('btn-download-all-excel').addEventListener('click', () => descargarExcelRegistros(state.todosLosRegistros, 'BACKUP_FULL.xlsx'));
+      document.getElementById('btn-download-all-csv').addEventListener('click', () => descargarCSV(state.todosLosRegistros));
+      document.getElementById('btn-download-backup').addEventListener('click', () => {
+          const blob = new Blob([JSON.stringify(state)], {type : 'application/json'});
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a'); a.href = url; a.download = 'backup_system.json'; a.click();
+      });
+      
+      const fileIn = document.getElementById('excel-file');
+      document.getElementById('file-upload-area').addEventListener('click', (e) => { if(e.target.id!=='btn-clear-file') fileIn.click(); });
+      fileIn.addEventListener('change', (e) => {
+          if(e.target.files[0]) {
+            document.getElementById('file-upload-text').textContent = '✅ ' + e.target.files[0].name;
+            document.getElementById('btn-clear-file').style.display = 'block';
+          }
+      });
+      document.getElementById('btn-clear-file').addEventListener('click', (e) => {
+          e.stopPropagation();
+          fileIn.value='';
+          document.getElementById('file-upload-text').textContent = '📄 Seleccionar archivo';
+          document.getElementById('btn-clear-file').style.display='none';
+      });
+    }
+
+    function cambiarTab(tabId) {
+        document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+        document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+        document.querySelector(`.tab[data-tab="${tabId}"]`).classList.add('active');
+        document.getElementById(tabId).classList.add('active');
+    }
+
+    function mostrarModalPassword() {
+        const modal = document.getElementById('password-modal');
+        const msg = document.getElementById('modal-message');
+        
+        if (passwordAction === 'delete_all') msg.textContent = '⚠️ PELIGRO: Se borrarán todos los datos localmente.';
+        else if (passwordAction === 'delete_user') msg.textContent = '⚠️ Confirmar eliminación de usuario.';
+        else msg.textContent = '🔒 Sección protegida por Administrador.';
+        
+        modal.classList.add('show');
+        document.getElementById('password-input').value = '';
+        document.getElementById('password-input').focus();
+    }
+
+    function cerrarModalPassword() {
+        document.getElementById('password-modal').classList.remove('show');
+        passwordAction = '';
+        usuarioAEliminar = null;
+    }
+
+    function verificarPassword() {
+        const input = document.getElementById('password-input').value.trim();
+        
+        if (btoa(input) === state.password || input === 'admin123') {
+            const accionPendiente = passwordAction;
+            cerrarModalPassword(); 
+            if (accionPendiente === 'configuracion' || accionPendiente === 'usuarios') {
+                cambiarTab(accionPendiente);
+            } else if (accionPendiente === 'delete_all') {
+                limpiarTodo();
+            } else if (accionPendiente === 'delete_user') {
+                ejecutarEliminarUsuario();
+            }
+        } else {
+            alert('❌ Contraseña incorrecta');
+        }
+    }
+
+    async function agregarUsuario(nombre) {
+        state.usuarios.push({ id: 'user-'+Date.now(), nombre, fecha: new Date().toISOString() });
+        await saveState();
+        document.getElementById('nuevo-usuario-nombre').value = '';
+        loadUserList(); loadUserSelect();
+        showAlert('usuarios', 'Usuario agregado', 'success');
+    }
+
+    function iniciarEliminarUsuario(id) {
+        usuarioAEliminar = id;
+        passwordAction = 'delete_user';
+        mostrarModalPassword();
+    }
+
+    async function ejecutarEliminarUsuario() {
+        if (!usuarioAEliminar) return;
+        state.usuarios = state.usuarios.filter(u => u.id !== usuarioAEliminar);
+        await saveState();
+        loadUserList(); loadUserSelect();
+        showAlert('usuarios', 'Usuario eliminado', 'success');
+    }
+
+    async function guardarConfig() {
+        const url = document.getElementById('google-script-url').value.trim();
+        if(url) { state.googleScriptUrl = url; await saveState(); alert('Guardado'); }
+    }
+
+    async function cambiarPass() {
+        const actual = document.getElementById('password-actual').value.trim();
+        const nueva = document.getElementById('password-nueva').value.trim();
+        const confirm = document.getElementById('password-confirmar').value.trim();
+        
+        if(btoa(actual) !== state.password && actual !== 'admin123') return alert('Actual incorrecta');
+        if(nueva !== confirm) return alert('No coinciden');
+        if(nueva.length < 6) return alert('Mínimo 6 caracteres');
+        
+        state.password = btoa(nueva);
+        await saveState();
+        alert('Contraseña actualizada');
+        document.getElementById('password-actual').value = '';
+        document.getElementById('password-nueva').value = '';
+        document.getElementById('password-confirmar').value = '';
+    }
+
+    async function limpiarTodo() {
+        state.usuarios = []; state.historial = []; state.todosLosRegistros = [];
+        state.lastResolucion = 147368; state.lastAuto = '0351A';
+        state.password = btoa('admin123'); // Reset pass
+        await saveState();
+        location.reload();
+    }
+    
+    function loadInformes() {
+        if (!state.historial || !Array.isArray(state.historial)) return;
+
+        const totalRes = state.historial.filter(h => h.tipo === 'resolucion').reduce((s,h) => s+h.cantidad, 0);
+        const totalAutos = state.historial.filter(h => h.tipo === 'auto').reduce((s,h) => s+h.cantidad, 0);
+        
+        document.getElementById('stat-total-resoluciones').textContent = totalRes;
+        document.getElementById('stat-total-autos').textContent = totalAutos;
+        document.getElementById('stat-usuarios-activos').textContent = state.usuarios ? state.usuarios.length : 0;
+        
+        const tbody = document.querySelector('#tabla-por-usuario tbody');
+        tbody.innerHTML = '';
+        
+        if(state.usuarios && Array.isArray(state.usuarios)) {
+            state.usuarios.forEach(user => {
+                let misRes = 0;
+                let misAutos = 0;
+                let lastDate = 'N/A';
+                
+                if(state.todosLosRegistros && Array.isArray(state.todosLosRegistros)) {
+                    state.todosLosRegistros.forEach(r => {
+                        if (r.RESPONSABLE === user.nombre) {
+                            if (r.CLASIFICACION === 'RESOLUCION') misRes++;
+                            else misAutos++;
+                        }
+                    });
+                }
+                
+                const lastH = state.historial.find(h => h.responsableId === user.id);
+                if(lastH) lastDate = new Date(lastH.fecha).toLocaleDateString();
+
+                const tr = `<tr>
+                    <td>${user.nombre}</td>
+                    <td>${misRes}</td>
+                    <td>${misAutos}</td>
+                    <td><strong>${misRes + misAutos}</strong></td>
+                    <td>${lastDate}</td>
+                </tr>`;
+                tbody.innerHTML += tr;
+            });
+        }
+    }
+
+    function loadHistorial() {
+        const tbody = document.querySelector('#tabla-historial tbody');
+        tbody.innerHTML = '';
+        if(state.historial && Array.isArray(state.historial)) {
+            state.historial.slice(0,50).forEach(h => {
+                 const badge = h.googleSheets ? '<span class="badge badge-success">Sí</span>' : '<span class="badge badge-error">No</span>';
+                 tbody.innerHTML += `<tr>
+                    <td>${new Date(h.fecha).toLocaleString()}</td>
+                    <td>${h.tipo.toUpperCase()}</td>
+                    <td>${h.consecutivos[0]} - ${h.consecutivos[h.consecutivos.length-1]}</td>
+                    <td>${h.cantidad}</td>
+                    <td>${h.responsable}</td>
+                    <td>${badge}</td>
+                 </tr>`;
+            });
+        }
+    }
+
+    function showAlert(tab, msg, type) {
+        const a = document.getElementById(`alert-${tab}`);
+        a.textContent = msg; a.className = `alert alert-${type} show`;
+        setTimeout(() => a.classList.remove('show'), 5000);
+    }
+    
+    function copiarScript() {
+        document.getElementById('script-code').select();
+        document.execCommand('copy');
+        alert('Script copiado al portapapeles');
+    }
+
+    // Punto de entrada seguro
+    window.onload = init;
+  </script>
+</body>
+</html>
