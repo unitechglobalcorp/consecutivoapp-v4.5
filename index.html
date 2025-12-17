@@ -578,8 +578,12 @@ function crearNuevaHoja(spreadsheet) {
     </div>
   </div>
 
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-  <script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script>
+    // --- 1. CONFIGURACIÓN MAESTRA (AQUÍ VA TU URL) ---
+    // Pega aquí abajo tu URL de Google Apps Script dentro de las comillas
+    const GLOBAL_URL = "https://script.google.com/macros/s/AKfycbw2XUFkVG9hbGrQfkHu0VJYatJ4S1lZABdnf3ZbSbXuzjCokwmCe_MlLalQbaiURNUU/exec"; 
+
     // --- LÓGICA DE ALMACENAMIENTO ---
     const Storage = {
       async get(key) {
@@ -608,7 +612,7 @@ function crearNuevaHoja(spreadsheet) {
       usuarios: [],
       historial: [],
       todosLosRegistros: [],
-      googleScriptUrl: '',
+      googleScriptUrl: GLOBAL_URL, // Se inicializa con la URL maestra
       password: btoa('admin123')
     };
     let passwordAction = ''; 
@@ -622,13 +626,28 @@ function crearNuevaHoja(spreadsheet) {
           const savedState = await Storage.get('app-state-v4');
           if (savedState) {
               state = { ...state, ...savedState };
+              
+              // --- CORRECCIÓN CRÍTICA: FORZAR URL MAESTRA ---
+              // Si la URL guardada está vacía o es diferente, usamos la GLOBAL
+              if (!state.googleScriptUrl || state.googleScriptUrl === "") {
+                  state.googleScriptUrl = GLOBAL_URL;
+              }
+              
               if (!Array.isArray(state.usuarios)) state.usuarios = [];
               if (!Array.isArray(state.historial)) state.historial = [];
               if (!Array.isArray(state.todosLosRegistros)) state.todosLosRegistros = [];
+          } else {
+              // Si es usuario nuevo, aseguramos la URL
+              state.googleScriptUrl = GLOBAL_URL;
           }
           
+          // Failsafe contraseña
           if (!state.password || state.password === "") state.password = btoa('admin123');
-          if (state.googleScriptUrl) document.getElementById('google-script-url').value = state.googleScriptUrl;
+          
+          // Actualizar el input de configuración visualmente
+          if (document.getElementById('google-script-url')) {
+             document.getElementById('google-script-url').value = state.googleScriptUrl;
+          }
           
           updateUI();
           loadUserSelect();
@@ -651,13 +670,15 @@ function crearNuevaHoja(spreadsheet) {
     async function saveState() {
       await Storage.set('app-state-v4', state);
       const indicator = document.getElementById('save-indicator');
-      indicator.classList.add('show');
-      setTimeout(() => indicator.classList.remove('show'), 2000);
+      if(indicator) {
+          indicator.classList.add('show');
+          setTimeout(() => indicator.classList.remove('show'), 2000);
+      }
     }
 
     function updateUI() {
-      document.getElementById('last-resolucion').textContent = state.lastResolucion;
-      document.getElementById('last-auto').textContent = state.lastAuto;
+      if(document.getElementById('last-resolucion')) document.getElementById('last-resolucion').textContent = state.lastResolucion;
+      if(document.getElementById('last-auto')) document.getElementById('last-auto').textContent = state.lastAuto;
     }
 
     function verificarObservaciones() {
@@ -689,13 +710,17 @@ function crearNuevaHoja(spreadsheet) {
     async function checkGoogleSheetsConnection() {
       const statusInd = document.getElementById('sheets-status');
       const statusTxt = document.getElementById('sheets-status-text');
-      if (!state.googleScriptUrl) {
+      
+      // Usar la URL Global si el estado falló
+      const targetUrl = state.googleScriptUrl || GLOBAL_URL;
+
+      if (!targetUrl) {
         statusInd.className = 'status-indicator status-disconnected';
         statusTxt.textContent = 'Sin conexión a Nube';
         return;
       }
       try {
-        const res = await fetch(state.googleScriptUrl);
+        const res = await fetch(targetUrl);
         const data = await res.json();
         if (data.status === 'success') {
           statusInd.className = 'status-indicator status-connected';
@@ -708,9 +733,10 @@ function crearNuevaHoja(spreadsheet) {
     }
 
     async function sincronizarConsecutivos() {
-        if (!state.googleScriptUrl) return false;
+        const targetUrl = state.googleScriptUrl || GLOBAL_URL;
+        if (!targetUrl) return false;
         try {
-            const url = state.googleScriptUrl + (state.googleScriptUrl.includes('?') ? '&' : '?') + 'action=getLastNumbers';
+            const url = targetUrl + (targetUrl.includes('?') ? '&' : '?') + 'action=getLastNumbers';
             const response = await fetch(url);
             const data = await response.json();
             if (data.status === 'success') {
@@ -798,7 +824,8 @@ function crearNuevaHoja(spreadsheet) {
       txtCount.textContent = '';
       
       txtStatus.textContent = '☁️ Verificando últimos números en nube...';
-      if (state.googleScriptUrl) await sincronizarConsecutivos();
+      const targetUrl = state.googleScriptUrl || GLOBAL_URL;
+      if (targetUrl) await sincronizarConsecutivos();
 
       txtStatus.textContent = '✨ Generando consecutivos...';
       const nuevosConsecutivos = generarNumerosLogica(tipo, registrosBase.length);
@@ -827,7 +854,7 @@ function crearNuevaHoja(spreadsheet) {
       state.todosLosRegistros.push(...registrosFinales);
       
       let nubeOk = false;
-      if (state.googleScriptUrl) {
+      if (targetUrl) {
           txtStatus.textContent = '📤 Enviando respaldo a Google Sheets...';
           const res = await enviarAGoogleSheets(registrosFinales);
           nubeOk = res.success;
@@ -891,8 +918,10 @@ function crearNuevaHoja(spreadsheet) {
     }
 
     async function enviarAGoogleSheets(registros) {
+        const targetUrl = state.googleScriptUrl || GLOBAL_URL;
+        if(!targetUrl) return { success: false };
         try {
-            const res = await fetch(state.googleScriptUrl, {
+            const res = await fetch(targetUrl, {
                 method: 'POST', mode: 'no-cors',
                 headers: {'Content-Type': 'application/json'},
                 body: JSON.stringify({ registros })
@@ -1109,11 +1138,12 @@ function crearNuevaHoja(spreadsheet) {
         const totalRes = state.historial.filter(h => h.tipo === 'resolucion').reduce((s,h) => s+h.cantidad, 0);
         const totalAutos = state.historial.filter(h => h.tipo === 'auto').reduce((s,h) => s+h.cantidad, 0);
         
-        document.getElementById('stat-total-resoluciones').textContent = totalRes;
-        document.getElementById('stat-total-autos').textContent = totalAutos;
-        document.getElementById('stat-usuarios-activos').textContent = state.usuarios ? state.usuarios.length : 0;
+        if(document.getElementById('stat-total-resoluciones')) document.getElementById('stat-total-resoluciones').textContent = totalRes;
+        if(document.getElementById('stat-total-autos')) document.getElementById('stat-total-autos').textContent = totalAutos;
+        if(document.getElementById('stat-usuarios-activos')) document.getElementById('stat-usuarios-activos').textContent = state.usuarios ? state.usuarios.length : 0;
         
         const tbody = document.querySelector('#tabla-por-usuario tbody');
+        if(!tbody) return;
         tbody.innerHTML = '';
         
         if(state.usuarios && Array.isArray(state.usuarios)) {
@@ -1148,6 +1178,7 @@ function crearNuevaHoja(spreadsheet) {
 
     function loadHistorial() {
         const tbody = document.querySelector('#tabla-historial tbody');
+        if(!tbody) return;
         tbody.innerHTML = '';
         if(state.historial && Array.isArray(state.historial)) {
             state.historial.slice(0,50).forEach(h => {
@@ -1166,18 +1197,23 @@ function crearNuevaHoja(spreadsheet) {
 
     function showAlert(tab, msg, type) {
         const a = document.getElementById(`alert-${tab}`);
-        a.textContent = msg; a.className = `alert alert-${type} show`;
-        setTimeout(() => a.classList.remove('show'), 5000);
+        if(a) {
+            a.textContent = msg; a.className = `alert alert-${type} show`;
+            setTimeout(() => a.classList.remove('show'), 5000);
+        }
     }
     
     function copiarScript() {
-        document.getElementById('script-code').select();
-        document.execCommand('copy');
-        alert('Script copiado al portapapeles');
+        const sc = document.getElementById('script-code');
+        if(sc) {
+            sc.select();
+            document.execCommand('copy');
+            alert('Script copiado al portapapeles');
+        }
     }
 
     // Punto de entrada seguro
     window.onload = init;
-  </script>
+</script>
 </body>
 </html>
